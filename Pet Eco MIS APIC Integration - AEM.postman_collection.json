@@ -1,0 +1,643 @@
+{
+	"info": {
+		"_postman_id": "ee59e22c-abef-4c7e-b4a7-42612324953a",
+		"name": "Pet Eco MIS APIC Integration - AEM",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Login",
+			"item": [
+				{
+					"name": "Login - Authenticate",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200\", function(){\r",
+									"\r",
+									"    pm.response.to.have.status(200);\r",
+									"\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.collectionVariables.set(\"SM_Session\", jsonData.extension.sessionCookie.value);\r",
+									"    \r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-mis-channelid",
+								"value": "{{ChannelId}}",
+								"type": "text"
+							},
+							{
+								"key": "x-mis-trxid",
+								"value": "{{TransactionId}}",
+								"type": "text"
+							},
+							{
+								"key": "X-ibm-client-Id",
+								"value": "{{ClientIdINT}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"userIdentifier\": \"{{UserName}}\",\r\n  \"password\": \"{{UserEncodedPassword}}\",\r\n  \"extension\": {\r\n    \"transactionId\": \"{{TransactionId}}\"\r\n  }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{MISAuthenticateURLINT}}",
+							"protocol": "https",
+							"host": [
+								"{{MISAuthenticateURLINT}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Authorize using SMSESSION",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Collect redirect location code\", function(){\r",
+									"    \r",
+									"    const querystring = require('querystring')\r",
+									"    var loc = null;\r",
+									"\r",
+									"    pm.response.to.have.header(\"Location\");\r",
+									"    loc = pm.response.headers.get(\"Location\");\r",
+									"\r",
+									"    if(loc!== undefined){\r",
+									"        let params = loc.split('?');\r",
+									"        let locationCode = querystring.parse(params[1]);\r",
+									"        let locationCodeValue = locationCode.code;\r",
+									"        pm.collectionVariables.set(\"Location_Code\", locationCodeValue);   \r",
+									"    }\r",
+									"    \r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"followRedirects": false
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-OIDC-Client-Id",
+								"type": "text",
+								"value": "{{ClientId}}"
+							},
+							{
+								"key": "x-mis-channelid",
+								"type": "text",
+								"value": "{{ChannelId}}"
+							},
+							{
+								"key": "x-mis-trxid",
+								"type": "text",
+								"value": "{{TransactionId}}"
+							}
+						],
+						"url": {
+							"raw": "https://{{SiteMinderBaseURL}}{{SiteMinderAuthorizeURL}}?response_type=code&client_id={{ClientId}}&scope={{Scope}}&redirect_uri={{RedirectUri}}",
+							"protocol": "https",
+							"host": [
+								"{{SiteMinderBaseURL}}{{SiteMinderAuthorizeURL}}"
+							],
+							"query": [
+								{
+									"key": "response_type",
+									"value": "code"
+								},
+								{
+									"key": "client_id",
+									"value": "{{ClientId}}"
+								},
+								{
+									"key": "scope",
+									"value": "{{Scope}}"
+								},
+								{
+									"key": "redirect_uri",
+									"value": "{{RedirectUri}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetToken",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200\", function(){\r",
+									"\r",
+									"    pm.response.to.have.status(200);\r",
+									"\r",
+									"    var jsonData = pm.response.json();\r",
+									"\r",
+									"    let accessToken = jsonData.access_token;\r",
+									"    pm.collectionVariables.set(\"Access_Token\", accessToken);\r",
+									"\r",
+									"    let idToken = jsonData.id_token;    \r",
+									"    pm.collectionVariables.set(\"Id_Token\", idToken);\r",
+									"    \r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{Location_Code}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "response_type",
+								"value": "code",
+								"type": "text"
+							},
+							{
+								"key": "X-IBM-Client-id",
+								"value": "{{ClientId}}",
+								"type": "text"
+							},
+							{
+								"key": "scope",
+								"value": "{{Scope}}",
+								"type": "text"
+							},
+							{
+								"key": "redirect_uri",
+								"value": "{{RedirectUri}}",
+								"type": "text"
+							},
+							{
+								"key": "client_id",
+								"value": "{{ClientId}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "authorization_code",
+									"type": "text"
+								},
+								{
+									"key": "code",
+									"value": "{{Location_Code}}",
+									"type": "text"
+								},
+								{
+									"key": "redirect_uri",
+									"value": "{{RedirectUri}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "https://{{SiteMinderBaseURL}}{{SiteMinderGetTokenURL}}",
+							"protocol": "https",
+							"host": [
+								"{{SiteMinderBaseURL}}{{SiteMinderGetTokenURL}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Pets",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200\", function(){\r",
+									"    pm.response.to.have.status(200);\r",
+									"\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.length).to.be.greaterThan(0);\r",
+									"\r",
+									"    pm.collectionVariables.set(\"PetId\", jsonData[0].id); \r",
+									"}\r",
+									")"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{Access_Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-session-id",
+								"value": "{{TransactionId}}",
+								"type": "text"
+							},
+							{
+								"key": "X-IBM-Client-Id",
+								"value": "{{ClientId}}",
+								"type": "text"
+							},
+							{
+								"key": "id_token",
+								"value": "{{Id_Token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://{{APICBaseURL}}/pp/v1/pets/",
+							"protocol": "https",
+							"host": [
+								"{{APICBaseURL}}"
+							],
+							"path": [
+								"pp",
+								"v1",
+								"pets",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "API Scripts",
+			"item": [
+				{
+					"name": "AEM",
+					"item": [
+						{
+							"name": "AEM-1",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status is 200\", function(){\r",
+											"    pm.response.to.have.status(200); \r",
+											"}\r",
+											")"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Access_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-session-id",
+										"value": "{{TransactionId}}",
+										"type": "text"
+									},
+									{
+										"key": "X-IBM-Client-Id",
+										"value": "{{ClientId}}",
+										"type": "text"
+									},
+									{
+										"key": "id_token",
+										"value": "{{Id_Token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://{{APICBaseURL}}/cms/v1/articles/MLfragments.pf.id-f1d1-bb83-c593b.json",
+									"protocol": "https",
+									"host": [
+										"{{APICBaseURL}}"
+									],
+									"path": [
+										"cms",
+										"v1",
+										"articles",
+										"MLfragments.pf.id-f1d1-bb83-c593b.json"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "AEM-2",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status is 200\", function(){\r",
+											"    pm.response.to.have.status(200); \r",
+											"}\r",
+											")"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Access_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-session-id",
+										"value": "{{TransactionId}}",
+										"type": "text"
+									},
+									{
+										"key": "X-IBM-Client-Id",
+										"value": "{{ClientId}}",
+										"type": "text"
+									},
+									{
+										"key": "id_token",
+										"value": "{{Id_Token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://{{APICBaseURL}}/cms/v1/articles/MLfragments.pf.id-f825-af3d-70fbf.json",
+									"protocol": "https",
+									"host": [
+										"{{APICBaseURL}}"
+									],
+									"path": [
+										"cms",
+										"v1",
+										"articles",
+										"MLfragments.pf.id-f825-af3d-70fbf.json"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "AEM-3",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status is 200\", function(){\r",
+											"    pm.response.to.have.status(200); \r",
+											"}\r",
+											")"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Access_Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-session-id",
+										"value": "{{TransactionId}}",
+										"type": "text"
+									},
+									{
+										"key": "X-IBM-Client-Id",
+										"value": "{{ClientId}}",
+										"type": "text"
+									},
+									{
+										"key": "id_token",
+										"value": "{{Id_Token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://{{APICBaseURL}}/cms/v1/articles/MLfragments.pf.id-f1d1-bb83-c593b.json",
+									"protocol": "https",
+									"host": [
+										"{{APICBaseURL}}"
+									],
+									"path": [
+										"cms",
+										"v1",
+										"articles",
+										"MLfragments.pf.id-f1d1-bb83-c593b.json"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "SM_Session",
+			"value": ""
+		},
+		{
+			"key": "ClientIdINT",
+			"value": "58bb5586-3c0e-4a96-9b20-fe696b857359"
+		},
+		{
+			"key": "ClientId",
+			"value": "58bb5586-3c0e-4a96-9b20-fe696b857359"
+		},
+		{
+			"key": "ChannelId",
+			"value": "PetMobile"
+		},
+		{
+			"key": "Scope",
+			"value": "openid OIDC_US_Pet_Mobile_App"
+		},
+		{
+			"key": "TransactionId",
+			"value": "PetMoblle-1234123412341234"
+		},
+		{
+			"key": "UserName",
+			"value": "pettestmets12@hotmail.com"
+		},
+		{
+			"key": "UserEncodedPassword",
+			"value": "RW1wbG95ZWUx"
+		},
+		{
+			"key": "RedirectUri",
+			"value": "https://qa.mypets.metlife.com/userattributetoken"
+		},
+		{
+			"key": "Location_Code",
+			"value": ""
+		},
+		{
+			"key": "Id_Token",
+			"value": ""
+		},
+		{
+			"key": "Access_Token",
+			"value": ""
+		},
+		{
+			"key": "MISAuthenticateURLINT",
+			"value": "qa.api.metlife.com/metlife/qa/mis/userservices/v1/tenants/US/views/users/credentials/authenticate"
+		},
+		{
+			"key": "SiteMinderBaseURL",
+			"value": "qa.mypets.metlife.com"
+		},
+		{
+			"key": "SiteMinderAuthorizeURL",
+			"value": "/affwebservices/CASSO/oidc/authorize"
+		},
+		{
+			"key": "SiteMinderGetTokenURL",
+			"value": "/affwebservices/CASSO/oidc/token"
+		},
+		{
+			"key": "APICBaseURL",
+			"value": "qa.api.metlife.com/metlife/qa/api/pet-services"
+		},
+		{
+			"key": "PetId",
+			"value": ""
+		},
+		{
+			"key": "PetAllergyId",
+			"value": ""
+		},
+		{
+			"key": "PetDocumentId",
+			"value": ""
+		},
+		{
+			"key": "PetVacId",
+			"value": ""
+		},
+		{
+			"key": "PetAllergyId1",
+			"value": ""
+		},
+		{
+			"key": "PetDocumentId1",
+			"value": ""
+		},
+		{
+			"key": "PetMedId",
+			"value": ""
+		},
+		{
+			"key": "PetMedId1",
+			"value": ""
+		},
+		{
+			"key": "PetVacId1",
+			"value": ""
+		},
+		{
+			"key": "Name",
+			"value": ""
+		}
+	]
+}
